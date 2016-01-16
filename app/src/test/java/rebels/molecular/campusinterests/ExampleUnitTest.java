@@ -1,4 +1,4 @@
-package rebels.molecular.campusinterests;
+package students.molecular.campusinterests;
 
 import org.junit.Test;
 
