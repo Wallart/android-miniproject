@@ -10,12 +10,17 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="@string/mapKey"/>
+            android:value="@string/mapKey" />
 
-        <activity android:name="students.molecular.campusinterests.MainActivity">
+        <activity android:name=".MainActivity">
+
+        </activity>
+        <activity
+            android:name=".LateralViewActivity"
+            android:label="@string/title_activity_lateral_view"
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
