@@ -1,12 +1,14 @@
 package students.molecular.campusinterests;
 
+
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.Toolbar;;
+import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
@@ -27,9 +29,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setSupportActionBar(myToolbar);
 
         //Display home button
-        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_drawer);
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_back);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
+
+
 
     }
 
@@ -39,5 +43,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
         googleMap.addMarker(new MarkerOptions().position(location).title(getString(R.string.college_name)));
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 17.0f));
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem menuItem) {
+        if (menuItem.getItemId() == android.R.id.home) {
+            this.finish();
+        }
+        return super.onOptionsItemSelected(menuItem);
     }
 }
