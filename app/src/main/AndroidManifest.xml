@@ -15,18 +15,16 @@
             android:value="@string/mapKey" />
 
         <activity android:name=".MainActivity">
-
-        </activity>
-        <activity
-            android:name=".LateralViewActivity"
-            android:label="@string/title_activity_lateral_view"
-            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+        <activity
+            android:name=".LateralViewActivity"
+            android:theme="@style/AppTheme">
+        </activity>
+
+    </application>
 </manifest>
