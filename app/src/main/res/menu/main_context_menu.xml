@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="students.molecular.campusinterests.MainActivity">
+    <item android:id="@+id/itemPointWithPicture" android:title="@string/ctx_elt_point_and_picture"/>
+    <item android:id="@+id/itemPoint" android:title="@string/ctx_elt_point"/>
+    <item android:id="@+id/itemZone" android:title="@string/ctx_elt_zone"/>
+</menu>

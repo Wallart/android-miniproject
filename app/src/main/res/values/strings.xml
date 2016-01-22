@@ -1,0 +1,15 @@
+<resources>
+    <string name="mapKey">AIzaSyBuvGSAg3Eq_SJ9qZ7nq3XTNOD8Gr_k5JM</string>
+    <string name="app_name">CampusInterests</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+
+    <string name="college_name">Université Paul Sabatier</string>
+    <string name="ctx_title">"Add zone or point of interest"</string>
+    <string name="ctx_elt_point">Point</string>
+    <string name="ctx_elt_point_and_picture">Point with picture</string>
+    <string name="ctx_elt_zone">Zone</string>
+</resources>
