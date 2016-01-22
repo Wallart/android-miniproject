@@ -1,5 +1,6 @@
 package students.molecular.campusinterests;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -9,7 +10,6 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.util.Log;
 import android.view.ContextMenu;
 import android.view.MenuInflater;
 import android.view.View;
@@ -21,9 +21,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -34,11 +36,20 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+import students.molecular.campusinterests.model.ImageResponse;
+import students.molecular.campusinterests.model.InterestPoint;
+import students.molecular.campusinterests.model.Picture;
+import students.molecular.campusinterests.services.ImgurService;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
 
-    private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
+    private static final int REQUEST_IMAGE_CAPTURE = 1;
 
     private GoogleMap map;
     private float defaultZoom;
@@ -47,6 +58,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private LatLng northeast;
 
     private Uri fileURI;
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     public MainActivity() {
         this.defaultLocation = new LatLng(43.5598807, 1.46588);
@@ -68,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View view) {
                 onAddClick(view);
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        //.setAction("Action", null).show();
+                //.setAction("Action", null).show();
             }
         });
 
@@ -83,6 +99,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         SupportMapFragment mapFragment = (SupportMapFragment) this.getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     @Override
@@ -142,8 +161,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         return true;
     }
 
-      /////////
-     // MAP //
+    /////////
+    // MAP //
     /////////
 
     @Override
@@ -176,8 +195,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-      //////////////////
-     // CONTEXT MENU //
+    //////////////////
+    // CONTEXT MENU //
     //////////////////
 
     @Override
@@ -189,9 +208,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         inflater.inflate(R.menu.main_context_menu, menu);
 
-        MenuItem pointAndPicture =  menu.findItem(R.id.itemPointWithPicture);
-        MenuItem point =  menu.findItem(R.id.itemPoint);
-        MenuItem zone =  menu.findItem(R.id.itemZone);
+        MenuItem pointAndPicture = menu.findItem(R.id.itemPointWithPicture);
+        MenuItem point = menu.findItem(R.id.itemPoint);
+        MenuItem zone = menu.findItem(R.id.itemZone);
 
         pointAndPicture.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
@@ -218,7 +237,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         });
     }
 
-    public void onAddClick(View v){
+    public void onAddClick(View v) {
         registerForContextMenu(v);
         openContextMenu(v);
     }
@@ -233,56 +252,133 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void addPointWithPicture(MenuItem item) {
         Toast.makeText(this, "Adding point with picture...", Toast.LENGTH_SHORT).show();
-        this.takePhoto();
+        this.dispatchTakePictureIntent();
     }
 
-      ///////////
-     // PHOTO //
+    ///////////
+    // PHOTO //
     ///////////
 
-    private void takePhoto() {
-        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            File photo = null;
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            String filename = "Capture_" + timestamp + ".jpg";
+            //File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
 
-        String date = new Date().toString();
-        String filename = "Photo_"+".jpg";
-
-        //File photo = new File(getCacheDir(), filename);
-        File photo;
-        if (android.os.Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)) {
             photo = new File(Environment.getExternalStorageDirectory(), filename);
-            System.out.println("Accessed to external storage");
+            if (photo != null) {
+                this.fileURI = Uri.fromFile(photo);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, this.fileURI);
+                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            }
         }
-        else {
-            System.out.println("Cannot access external storage");
-            photo = new File(getCacheDir(), filename);
-        }
-
-
-        this.fileURI = Uri.fromFile(photo);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, this.fileURI);
-
-        startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
     }
 
     private void onPhoto() {
-        Uri selectedImage = this.fileURI;
-        getContentResolver().notifyChange(selectedImage, null);
 
+        getContentResolver().notifyChange(this.fileURI, null);
         ContentResolver cr = getContentResolver();
 
         try {
-            Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(cr, selectedImage);
+            File photo = new File(this.fileURI.getPath());
+            Picture picture = new Picture(null, null, photo, null);
+            final InterestPoint fakePoint = new InterestPoint("Trololo", picture, null);
 
-            //ImageView view = new ImageView(this);
-            //view.setImageBitmap(bitmap);
-            //setContentView(view);
+            ImgurService service = new ImgurService(getApplicationContext());
+            service.upload(fakePoint, new Callback<ImageResponse>() {
+                @Override
+                public void success(ImageResponse imageResponse, Response response) {
+                    fakePoint.getPicture().setUrl(imageResponse.data.link);
+                    Toast.makeText(getApplicationContext(), imageResponse.data.link, Toast.LENGTH_LONG).show();
+                }
 
-            setContentView(R.layout.activity_main);
-            Toast.makeText(this, "Picture taken", Toast.LENGTH_SHORT).show();
+                @Override
+                public void failure(RetrofitError error) {
+                    System.out.println(error.toString());
+                    Toast.makeText(getApplicationContext(), "ERROR", Toast.LENGTH_LONG).show();
+                }
+            });
+
+            //Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(cr, this.fileURI);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        catch(Exception e) {
-            Toast.makeText(this, "Failed to load.", Toast.LENGTH_SHORT).show();
-            Log.e("Camera", e.toString());
+    }
+
+    //////////////
+    // ACTIVITY //
+    //////////////
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == Activity.RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_IMAGE_CAPTURE:
+                    this.onPhoto();
+                    break;
+            }
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (this.fileURI != null) {
+            outState.putString("fileUri", this.fileURI.toString());
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        if (savedInstanceState.containsKey("fileUri")) {
+            this.fileURI = Uri.parse(savedInstanceState.getString("fileUri"));
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Main Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://students.molecular.campusinterests/http/host/path")
+        );
+        AppIndex.AppIndexApi.start(client, viewAction);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        Action viewAction = Action.newAction(
+                Action.TYPE_VIEW, // TODO: choose an action type.
+                "Main Page", // TODO: Define a title for the content shown.
+                // TODO: If you have web page content that matches this app activity's content,
+                // make sure this auto-generated web page URL is correct.
+                // Otherwise, set the URL to null.
+                Uri.parse("http://host/path"),
+                // TODO: Make sure this auto-generated app deep link URI is correct.
+                Uri.parse("android-app://students.molecular.campusinterests/http/host/path")
+        );
+        AppIndex.AppIndexApi.end(client, viewAction);
+        client.disconnect();
     }
 }
