@@ -1,5 +1,6 @@
 package students.molecular.campusinterests.services;
 
+import java.util.Collection;
 import java.util.List;
 
 import students.molecular.campusinterests.model.HashTag;
@@ -10,7 +11,7 @@ import students.molecular.campusinterests.model.InterestPoint;
  */
 public interface IInterestPoint {
 
-    List<InterestPoint> getPointsOfInterest(List<HashTag> tags);
+    Collection<InterestPoint> getPointsOfInterest(String query);
 
     boolean save(InterestPoint point);
 }

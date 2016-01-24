@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
-import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -27,16 +26,17 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.widget.Button;
+import android.view.View;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
+import com.firebase.client.Firebase;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -49,7 +49,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.io.FileNotFoundException;
@@ -69,7 +68,9 @@ import students.molecular.campusinterests.model.GeoPosition;
 import students.molecular.campusinterests.model.ImageResponse;
 import students.molecular.campusinterests.model.InterestPoint;
 import students.molecular.campusinterests.model.Picture;
+import students.molecular.campusinterests.services.IInterestPoint;
 import students.molecular.campusinterests.services.ImgurService;
+import students.molecular.campusinterests.services.InterestPointImpl;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback
          {
@@ -80,13 +81,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private float defaultZoom;
     private LatLng defaultLocation;
     private LatLng southwest;
-    private LatLng northeast;;
     private boolean isMapReady = false;
     private ArrayList<InterestPoint> pointsOfInterest;
     private LatLng northeast;
     private Bitmap bitmap;
     private Context context;
     ImgurService service;
+             IInterestPoint interestPointService;
     GoogleApiClient mGoogleApiClient;
 
 
@@ -110,6 +111,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         gps = new GPSTracker(MainActivity.this);
         service = new ImgurService(context);
         setContentView(R.layout.activity_main);
+        Firebase.setAndroidContext(this);
+        interestPointService = new InterestPointImpl();
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
@@ -295,7 +298,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             double latitude = gps.getLatitude();
             double longitude = gps.getLongitude();
-            position = new GeoPosition(new LatLng(latitude, longitude));
+            position = new GeoPosition(latitude, longitude);
         }else{
             gps.showSettingsAlert();
         }
@@ -381,7 +384,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void addPoint(String imageUrl){
         Picture pic = new Picture(null, imageUrl, null);
-        InterestPoint point = new InterestPoint("", pic, position);
+        InterestPoint point = new InterestPoint("", pic, position, "");
+        interestPointService.save(point);
     }
 
     private GeoPosition getGeoPosition() {
@@ -396,8 +400,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         /** Make sure that the map has been initialised **/
         if( pointsOfInterest != null && isMapReady && (map != null) && (pointsOfInterest.size() > 0 )){
                 for (int i = 0; i < pointsOfInterest.size(); i++) {
+                    LatLng position = new LatLng(pointsOfInterest.get(i).getPosition().getLatitude(), pointsOfInterest.get(i).getPosition().getLongtitude());
                     map.addMarker(new MarkerOptions()
-                                    .position(pointsOfInterest.get(i).getPosition().getCoordinates())
+                                    .position(position)
                                     .title(pointsOfInterest.get(i).getName()).snippet(pointsOfInterest.get(i).getDescription()));
 
                 }

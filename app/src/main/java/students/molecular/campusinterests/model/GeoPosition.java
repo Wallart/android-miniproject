@@ -7,13 +7,29 @@ import com.google.android.gms.maps.model.LatLng;
  */
 public class GeoPosition {
 
-    private LatLng coordinates;
+    private double latitude;
+    private double longtitude;
 
-    public GeoPosition(LatLng coordinates) {
-        this.coordinates = coordinates;
+    public GeoPosition() {}
+
+    public GeoPosition(double latitude,  double longtitude) {
+        this.latitude = latitude;
+        this.longtitude = longtitude;
     }
 
-    public LatLng getCoordinates() {
-        return coordinates;
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public double getLongtitude() {
+        return longtitude;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public void setLongtitude(double longtitude) {
+        this.longtitude = longtitude;
     }
 }

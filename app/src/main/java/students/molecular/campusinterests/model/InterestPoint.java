@@ -6,15 +6,17 @@ package students.molecular.campusinterests.model;
 public class InterestPoint {
 
     private String name;
+    private String description;
     private Picture picture;
     private GeoPosition position;
 
     public InterestPoint() {}
 
-    public InterestPoint(String name, Picture picture, GeoPosition position) {
+    public InterestPoint(String name, Picture picture, GeoPosition position, String description) {
         this.name = name;
         this.picture = picture;
         this.position = position;
+        this.description = description;
     }
 
 
@@ -40,5 +42,13 @@ public class InterestPoint {
 
     public void setPosition(GeoPosition position) {
         this.position = position;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
     }
 }
