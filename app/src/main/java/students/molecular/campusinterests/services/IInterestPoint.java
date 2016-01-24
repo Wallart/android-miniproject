@@ -13,5 +13,11 @@ public interface IInterestPoint {
 
     Collection<InterestPoint> getPointsOfInterest(String query);
 
+    Collection<InterestPoint> getPointsOfInterest();
+
     boolean save(InterestPoint point);
+
+    interface DataChangedListener {
+        void onDataChange();
+    }
 }
