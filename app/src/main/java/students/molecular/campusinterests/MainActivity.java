@@ -1,6 +1,9 @@
 package students.molecular.campusinterests;
 
+import android.app.SearchManager;
+import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -9,6 +12,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.MenuInflater;
@@ -44,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private float defaultZoom;
     private LatLng defaultLocation;
     private LatLng southwest;
-    private LatLng northeast;
+    private LatLng northeast;;
 
     private Uri fileURI;
 
@@ -61,6 +65,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -99,6 +107,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+        // Associate searchable configuration with the SearchView
+        SearchManager searchManager =
+                (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView =
+                (SearchView) menu.findItem(R.id.search).getActionView();
+        searchView.setIconified(false);
+        searchView.clearFocus(); // close the keyboard on load
+        ComponentName componentName = new ComponentName(this, SearchResultsActivity.class);
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName));
         return true;
     }
 
@@ -113,6 +130,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (id == R.id.action_settings) {
             return true;
         }
+        /*if(id == R.id.search) {
+            return true;
+        }*/
 
         return super.onOptionsItemSelected(item);
     }
@@ -124,9 +144,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
 
          if (id == R.id.nav_gallery) {
-
+            Toast.makeText(this, "Mes Photos",Toast.LENGTH_LONG).show();
         }  else if (id == R.id.nav_manage) {
-
+             Toast.makeText(this, "Configuration",Toast.LENGTH_LONG).show();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
