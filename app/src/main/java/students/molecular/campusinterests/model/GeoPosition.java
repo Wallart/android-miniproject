@@ -9,7 +9,7 @@ public class GeoPosition {
 
     private LatLng coordinates;
 
-    GeoPosition(LatLng coordinates) {
+    public GeoPosition(LatLng coordinates) {
         this.coordinates = coordinates;
     }
 

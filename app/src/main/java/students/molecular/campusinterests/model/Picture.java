@@ -11,13 +11,14 @@ public class Picture {
 
     private Date date;
     private String url;
-    private File file;
     private List<HashTag> tags;
     private User user;
 
-    public  Picture(User user, String url, File file, List<HashTag> tags) {
+    public Picture(){
+    }
+
+    public  Picture(User user, String url, List<HashTag> tags) {
         this.date = new Date();
-        this.file = file;
         this.tags = tags;
         this.user = user;
         this.url = url;
@@ -26,10 +27,6 @@ public class Picture {
 
     public Date getDate() {
         return  date;
-    }
-
-    public File getFile() {
-        return file;
     }
 
     public List<HashTag> getTags() {
@@ -46,5 +43,17 @@ public class Picture {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
+    public void setTags(List<HashTag> tags) {
+        this.tags = tags;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

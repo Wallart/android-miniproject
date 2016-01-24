@@ -6,6 +6,9 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -29,6 +32,11 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -41,16 +49,30 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Date;
 import java.util.List;
 
 import students.molecular.campusinterests.model.InterestPoint;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+import students.molecular.campusinterests.model.GeoPosition;
+import students.molecular.campusinterests.model.ImageResponse;
+import students.molecular.campusinterests.model.InterestPoint;
+import students.molecular.campusinterests.model.Picture;
+import students.molecular.campusinterests.services.ImgurService;
+
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback
+         {
 
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
 
@@ -61,9 +83,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private LatLng northeast;;
     private boolean isMapReady = false;
     private ArrayList<InterestPoint> pointsOfInterest;
-    private Uri fileURI;
+    private LatLng northeast;
+    private Bitmap bitmap;
+    private Context context;
+    ImgurService service;
+    GoogleApiClient mGoogleApiClient;
 
-    public MainActivity() {
+
+    private Uri fileURI;
+    private Location mLastLocation;
+    private GeoPosition position;
+             private LocationRequest locationRequest;
+             private GPSTracker gps;
+
+             public MainActivity() {
         this.defaultLocation = new LatLng(43.5598807, 1.46588);
         this.defaultZoom = 17.0f;
         this.southwest = new LatLng(43.555686, 1.461020);
@@ -73,6 +106,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        context = getApplicationContext();
+        gps = new GPSTracker(MainActivity.this);
+        service = new ImgurService(context);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -255,8 +291,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void addPointWithPicture(MenuItem item) {
-        Toast.makeText(this, "Adding point with picture...", Toast.LENGTH_SHORT).show();
-        this.takePhoto();
+        if(gps.canGetLocation()){
+
+            double latitude = gps.getLatitude();
+            double longitude = gps.getLongitude();
+            position = new GeoPosition(new LatLng(latitude, longitude));
+        }else{
+            gps.showSettingsAlert();
+        }
+        takePhoto();
     }
 
       ///////////
@@ -264,7 +307,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ///////////
 
     private void takePhoto() {
-        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
         String date = new Date().toString();
         String filename = "Photo_"+".jpg";
@@ -280,33 +323,69 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             photo = new File(getCacheDir(), filename);
         }
 
-
+        try {
+            photo.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.fileURI = Uri.fromFile(photo);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, this.fileURI);
-
         startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
     }
 
-    private void onPhoto() {
-        Uri selectedImage = this.fileURI;
-        getContentResolver().notifyChange(selectedImage, null);
 
-        ContentResolver cr = getContentResolver();
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        InputStream stream = null;
+        String path = this.fileURI.getPath();
+        OutputStream fOut = null;
+        File file = new File(path);
+        if (requestCode == CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE && resultCode == RESULT_OK) {
+            Log.d("CameraDemo", "Pic saved");
+            try {
+                // recyle unused bitmaps
+                if (bitmap != null) {
+                    bitmap.recycle();
+                }
+                fOut = new FileOutputStream(file);
+                stream = this.getApplicationContext().getContentResolver().openInputStream(data.getData());
+                bitmap = BitmapFactory.decodeStream(stream);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, fOut);
+                fOut.flush();
+                fOut.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                {
+                    if (stream != null)
+                        try {
+                            stream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                }
+                service.upload(fileURI.getPath().toString(), new Callback<ImageResponse>() {
+                    @Override
+                    public void success(ImageResponse imageResponse, Response response) {
+                        addPoint(imageResponse.data.link);
+                    }
 
-        try {
-            Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(cr, selectedImage);
-
-            //ImageView view = new ImageView(this);
-            //view.setImageBitmap(bitmap);
-            //setContentView(view);
-
-            setContentView(R.layout.activity_main);
-            Toast.makeText(this, "Picture taken", Toast.LENGTH_SHORT).show();
+                    @Override
+                    public void failure(RetrofitError error) {
+                        System.out.println("error: " + error);
+                    }
+                });
+            }
         }
-        catch(Exception e) {
-            Toast.makeText(this, "Failed to load.", Toast.LENGTH_SHORT).show();
-            Log.e("Camera", e.toString());
-        }
+    }
+
+    private void addPoint(String imageUrl){
+        Picture pic = new Picture(null, imageUrl, null);
+        InterestPoint point = new InterestPoint("", pic, position);
+    }
+
+    private GeoPosition getGeoPosition() {
+        return null;
     }
 
 

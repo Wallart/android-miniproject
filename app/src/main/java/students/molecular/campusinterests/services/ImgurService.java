@@ -2,6 +2,7 @@ package students.molecular.campusinterests.services;
 
 import android.content.Context;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 
 import retrofit.Callback;
@@ -23,23 +24,26 @@ public class ImgurService {
         this.mContext = new WeakReference<>(context);
     }
 
-    public void upload(InterestPoint upload, Callback<ImageResponse> cb) {
+    public void upload(String file, Callback<ImageResponse> cb) {
+        if(new File(file).length() == 0)
+            return;
         if (!NetworkUtils.isConnected(mContext.get())) {
             return;
         }
         RestAdapter restAdapter = buildRestAdapter();
         restAdapter.create(ImgurAPI.class).postImage(
                 Constants.getClientAuth(),
-                upload.getName(),
-                upload.getDescription(),
+                file,
                 null,
-                new TypedFile("image/*", upload.getPicture().getFile()),
+                null,
+                new TypedFile("image/*", new File(file)),
                 cb);
     }
 
     private RestAdapter buildRestAdapter() {
         RestAdapter imgurAdapter = new RestAdapter.Builder()
                 .setEndpoint(ImgurAPI.server)
+                .setLogLevel(RestAdapter.LogLevel.FULL)
                 .build();
         return imgurAdapter;
     }
