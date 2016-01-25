@@ -390,9 +390,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         interestPointService.save(point);
     }
 
-    private GeoPosition getGeoPosition() {
-        return null;
-    }
+
 
 
     /**
