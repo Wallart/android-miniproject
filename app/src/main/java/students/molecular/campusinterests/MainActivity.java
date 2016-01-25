@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         SupportMapFragment mapFragment = (SupportMapFragment) this.getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        pointsOfInterest = new ArrayList<InterestPoint>(interestPointService.getPointsOfInterest(""));
+        pointsOfInterest = new ArrayList<InterestPoint>(interestPointService.getPointsOfInterest("")); //fetch all points
     }
 
     @Override
@@ -222,7 +222,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         });
         isMapReady = true;
-        addMarkers(pointsOfInterest);
+        addMarkers(pointsOfInterest); //add markers
     }
 
     private void checkMapBounds() {
