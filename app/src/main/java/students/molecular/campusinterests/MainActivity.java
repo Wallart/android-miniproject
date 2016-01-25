@@ -350,5 +350,4 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Toast.makeText(this, "No results for your search", Toast.LENGTH_LONG).show();
         }
     }
-
 }
