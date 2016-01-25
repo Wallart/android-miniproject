@@ -195,6 +195,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 checkMapBounds();
             }
         });
+        map.setOnMapClickListener(new GoogleMap.OnMapClickListener()
+        {
+            @Override
+            public void onMapClick(LatLng arg0)
+            {
+                addPoint(null, new GeoPosition(arg0.latitude, arg0.longitude));
+            }
+        });
         isMapReady = true;
         addMarkers(pointsOfInterest); //add markers
     }
@@ -340,7 +348,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 service.upload(fileURI.getPath().toString(), new Callback<ImageResponse>() {
                     @Override
                     public void success(ImageResponse imageResponse, Response response) {
-                        addPoint(imageResponse.data.link);
+                        addPoint(imageResponse.data.link, position);
                     }
                     @Override
                     public void failure(RetrofitError error) {
@@ -353,7 +361,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
 
-    private void addPoint(String imageUrl){
+    private void addPoint(String imageUrl, GeoPosition position){
         List<HashTag> tags = new ArrayList<>();
         tags.add(new HashTag("paul sabatier"));
         Picture pic = new Picture(null, imageUrl, tags);
