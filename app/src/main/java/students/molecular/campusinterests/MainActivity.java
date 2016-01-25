@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -32,13 +33,22 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
+import students.molecular.campusinterests.model.InterestPoint;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
 
@@ -49,7 +59,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private LatLng defaultLocation;
     private LatLng southwest;
     private LatLng northeast;;
-
+    private boolean isMapReady = false;
+    private ArrayList<InterestPoint> pointsOfInterest;
     private Uri fileURI;
 
     public MainActivity() {
@@ -79,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         //.setAction("Action", null).show();
             }
         });
+        handleIntent(getIntent());
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -107,15 +119,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+        MenuItem searchViewItem = menu.findItem(R.id.search);
+        SearchView searchView = (SearchView) searchViewItem.getActionView();
         // Associate searchable configuration with the SearchView
         SearchManager searchManager =
                 (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView =
-                (SearchView) menu.findItem(R.id.search).getActionView();
+
         searchView.setIconified(false);
+
+        searchView.setMaxWidth(Integer.MAX_VALUE);
+
+
         searchView.clearFocus(); // close the keyboard on load
-        ComponentName componentName = new ComponentName(this, SearchResultsActivity.class);
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName));
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         return true;
     }
 
@@ -126,13 +142,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        /*if(id == R.id.search) {
-            return true;
-        }*/
 
         return super.onOptionsItemSelected(item);
     }
@@ -171,6 +180,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 checkMapBounds();
             }
         });
+        isMapReady = true;
+        addMarkers(pointsOfInterest);
     }
 
     private void checkMapBounds() {
@@ -297,4 +308,47 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             Log.e("Camera", e.toString());
         }
     }
+
+
+    /**
+     *  Adds Point markers on the map.
+     */
+    public void addMarkers(ArrayList<InterestPoint> pointsOfInterest){
+        /** Make sure that the map has been initialised **/
+        if( pointsOfInterest != null && isMapReady && (map != null) && (pointsOfInterest.size() > 0 )){
+                for (int i = 0; i < pointsOfInterest.size(); i++) {
+                    map.addMarker(new MarkerOptions()
+                                    .position(pointsOfInterest.get(i).getPosition().getCoordinates())
+                                    .title(pointsOfInterest.get(i).getName()).snippet(pointsOfInterest.get(i).getDescription()));
+
+                }
+            }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            String query = intent.getStringExtra(SearchManager.QUERY);
+            doMySearch(query);
+        }
+    }
+
+    private void doMySearch(String query) {
+        ArrayList<InterestPoint> searchResultsFromDB = new ArrayList<>();
+        if(searchResultsFromDB.size() > 0 && isMapReady ) {
+            //Clear all markers
+            map.clear();
+            //Add markers in the search results only
+            addMarkers(searchResultsFromDB);
+
+        } else {
+            Toast.makeText(this, "No results for your search", Toast.LENGTH_LONG).show();
+        }
+    }
+
 }
