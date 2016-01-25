@@ -338,6 +338,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -384,11 +386,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+
+
     private void addPoint(String imageUrl){
         Picture pic = new Picture(null, imageUrl, null);
         InterestPoint point = new InterestPoint("", pic, position, "");
         interestPointService.save(point);
     }
+
 
 
 
