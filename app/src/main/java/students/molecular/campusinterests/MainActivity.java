@@ -126,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View view) {
                 onAddClick(view);
                 //Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        //.setAction("Action", null).show();
+                //.setAction("Action", null).show();
             }
         });
         handleIntent(getIntent());
@@ -142,6 +142,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         SupportMapFragment mapFragment = (SupportMapFragment) this.getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        pointsOfInterest = new ArrayList<InterestPoint>(interestPointService.getPointsOfInterest(""));
     }
 
     @Override
@@ -423,7 +425,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void doMySearch(String query) {
-        ArrayList<InterestPoint> searchResultsFromDB = new ArrayList<>();
+        ArrayList<InterestPoint> searchResultsFromDB = new ArrayList<>(interestPointService.getPointsOfInterest(query));
         if(searchResultsFromDB.size() > 0 && isMapReady ) {
             //Clear all markers
             map.clear();
