@@ -270,8 +270,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         addPointDialog.dismiss();
                     }
                 });
-            } // end if
-                addPointDialog.show();
+                    addPointDialog.show();
+            } else {
+                    addPointMode = false;
+                }
+
             }
 
         });
