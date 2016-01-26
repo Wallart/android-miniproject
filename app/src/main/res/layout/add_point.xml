@@ -1,0 +1,65 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:id="@+id/addPoint">
+
+  <!--  <ImageView
+        android:id="@+id/pointImage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scaleType="fitStart"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/user_colored"/> -->
+
+    <EditText
+        android:id="@+id/pointName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="4dp"
+        android:layout_marginBottom="4dp"
+        android:layout_marginTop="10dp"
+        android:hint="Nom de point d\'intérêt" />
+    <EditText
+        android:id="@+id/pointDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/pointName"
+        android:layout_marginTop="4dp"
+        android:fontFamily="sans-serif"
+        android:hint="Description de point d\'intérêt" />
+
+
+
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/currentPosition"
+        android:id="@+id/checkBoxAddCurrentLoc"
+        android:layout_below="@+id/pointDescription"
+        android:layout_marginTop="4dp"
+        android:enabled="false" />
+
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="  Ajouter  "
+        android:id="@+id/btnAjout"
+        android:layout_marginLeft="75dp"
+        android:layout_marginRight="33dp"
+        android:layout_below="@+id/checkBoxAddCurrentLoc"
+        />
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="  Annuler  "
+        android:id="@+id/btnAnnule"
+        android:layout_toRightOf="@+id/btnAjout"
+        android:layout_alignTop="@+id/btnAjout"
+        />
+
+</RelativeLayout>

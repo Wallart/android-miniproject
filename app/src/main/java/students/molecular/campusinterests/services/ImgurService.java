@@ -1,10 +1,15 @@
 package students.molecular.campusinterests.services;
 
 import android.content.Context;
+import android.util.Log;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import retrofit.Callback;
 import retrofit.RestAdapter;
 import retrofit.client.Response;
@@ -48,15 +53,14 @@ public class ImgurService {
         return imgurAdapter;
     }
 
-    public void download(InterestPoint point, Callback<Response> cb) {
+    public void download(String url, okhttp3.Callback cb) {
         if (!NetworkUtils.isConnected(mContext.get())) {
             return;
         }
-        RestAdapter restAdapter = buildRestAdapter();
-        restAdapter.create(ImgurAPI.class).getImage(
-                Constants.getClientAuth(),
-                point.getPicture().getUrl(),
-                cb
-        );
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+        client.newCall(request).enqueue(cb);
     }
 }

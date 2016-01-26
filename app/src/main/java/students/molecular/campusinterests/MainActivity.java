@@ -1,10 +1,12 @@
 package students.molecular.campusinterests;
 
+import android.app.Dialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -24,6 +26,11 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.client.Firebase;
@@ -33,15 +40,16 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polygon;
+import com.google.android.gms.maps.model.PolygonOptions;
 
+import java.io.BufferedInputStream;
 import java.io.File;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,7 +63,6 @@ import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
 import students.molecular.campusinterests.model.GeoPosition;
-import students.molecular.campusinterests.model.HashTag;
 import students.molecular.campusinterests.model.ImageResponse;
 import students.molecular.campusinterests.model.InterestPoint;
 import students.molecular.campusinterests.model.Picture;
@@ -63,8 +70,7 @@ import students.molecular.campusinterests.services.IInterestPoint;
 import students.molecular.campusinterests.services.ImgurService;
 import students.molecular.campusinterests.services.InterestPointImpl;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, IInterestPoint.DataChangedListener
-         {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, IInterestPoint.DataChangedListener {
 
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
 
@@ -72,23 +78,32 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private float defaultZoom;
     private LatLng defaultLocation;
     private LatLng southwest;
-    private boolean isMapReady = false;
+    private boolean isMapReady = false, addPointMode = false, addZoneMode = false;
     private ArrayList<InterestPoint> pointsOfInterest;
     private LatLng northeast;
     private Bitmap bitmap;
     private Context context;
+    private InterestPoint point;
     ImgurService service;
-             IInterestPoint interestPointService;
+    IInterestPoint interestPointService;
     GoogleApiClient mGoogleApiClient;
+    private Dialog addPointDialog, addZoneDialog;
+    private Button btnAjouter, btnAnnuler;
+    private TextView pointName, pointDescription;
+    private CheckBox checkBoxAddCurrentLoc;
+    private List<GeoPosition> zoneBoundary;
+    private boolean wantsAnotherPoint = true;
+    private EditText zoneName;
+    private Polygon aZoneToAdd;
 
 
     private Uri fileURI;
     private Location mLastLocation;
     private GeoPosition position;
-             private LocationRequest locationRequest;
-             private GPSTracker gps;
+    private LocationRequest locationRequest;
+    private GPSTracker gps;
 
-             public MainActivity() {
+    public MainActivity() {
         this.defaultLocation = new LatLng(43.5598807, 1.46588);
         this.defaultZoom = 17.0f;
         this.southwest = new LatLng(43.555686, 1.461020);
@@ -107,8 +122,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
-
-
 
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -169,18 +182,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         int id = item.getItemId();
-         if (id == R.id.nav_gallery) {
-            Toast.makeText(this, "Mes Photos",Toast.LENGTH_LONG).show();
-        }  else if (id == R.id.nav_manage) {
-             Toast.makeText(this, "Configuration",Toast.LENGTH_LONG).show();
+        if (id == R.id.nav_gallery) {
+            Toast.makeText(this, "Mes Photos", Toast.LENGTH_LONG).show();
+        } else if (id == R.id.nav_manage) {
+            Toast.makeText(this, "Configuration", Toast.LENGTH_LONG).show();
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
 
-      /////////
-     // MAP //
+    /////////
+    // MAP //
     /////////
 
     @Override
@@ -195,17 +208,76 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 checkMapBounds();
             }
         });
-        map.setOnMapClickListener(new GoogleMap.OnMapClickListener()
-        {
+        map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
-            public void onMapClick(LatLng arg0)
-            {
-                addPoint(null, new GeoPosition(arg0.latitude, arg0.longitude));
+            public void onMapClick(LatLng arg0) {
+                if (point != null) {
+                    point.setPosition(new GeoPosition(arg0.latitude, arg0.longitude));
+                    addPoint();
+                } else {
+                    Toast.makeText(context, "Utiliser le button pour rajouter un point", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         isMapReady = true;
-        addMarkers(pointsOfInterest); //add markers
+        addMarkers(pointsOfInterest);
     }
+
+    private void showAddPointDialog() {
+        addPointDialog = new Dialog(MainActivity.this, android.R.style.Theme_DeviceDefault_Light_Dialog_MinWidth);
+        addPointDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        addPointDialog.setCancelable(true);
+        addPointDialog.setContentView(R.layout.add_point);
+        pointName = (EditText) addPointDialog.findViewById(R.id.pointName);
+        pointDescription = (EditText) addPointDialog.findViewById(R.id.pointDescription);
+        checkBoxAddCurrentLoc = (CheckBox) addPointDialog.findViewById(R.id.checkBoxAddCurrentLoc);
+        checkBoxAddCurrentLoc.setEnabled(true);
+        btnAjouter = (Button) addPointDialog.findViewById(R.id.btnAjout);
+        btnAjouter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String name = pointName.getText().toString().trim();
+                String description = pointDescription.getText().toString().trim();
+                if (name.isEmpty()) {
+                    pointName.setError("Champs requis");
+                    pointDescription.setError("Nom de point requis");
+                    return;
+                }
+                point.setName(name);
+                if (checkBoxAddCurrentLoc.isChecked()) {
+                    point.setPosition(getCurrentPosition());
+                }
+                if (description != null && !description.isEmpty())
+                    point.setDescription(description);
+                if (point.getPosition() == null) {
+                    Toast.makeText(context, "Sélectionner la position du point sur la map", Toast.LENGTH_SHORT).show();
+                } else {
+                    interestPointService.save(point);
+                }
+                addPointDialog.dismiss();
+            }
+        });
+        btnAnnuler = (Button) addPointDialog.findViewById(R.id.btnAnnule);
+        btnAnnuler.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                addPointMode = false;
+                addPointDialog.dismiss();
+            }
+        });
+        addPointDialog.show();
+    }
+
+    private void drawZone(List<GeoPosition> boundary) {
+        PolygonOptions rectOptions = new PolygonOptions();
+        for (GeoPosition geo : boundary)
+            rectOptions.add(new LatLng(geo.getLatitude(), geo.getLongtitude()));
+
+        if (aZoneToAdd != null) {
+            aZoneToAdd.remove();
+        }
+        aZoneToAdd = map.addPolygon(rectOptions.strokeColor(Color.RED).strokeWidth(2));
+    }
+
 
     private void checkMapBounds() {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
@@ -222,8 +294,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-      //////////////////
-     // CONTEXT MENU //
+    //////////////////
+    // CONTEXT MENU //
     //////////////////
 
     @Override
@@ -232,9 +304,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         MenuInflater inflater = getMenuInflater();
         menu.setHeaderTitle(getString(R.string.ctx_title));
         inflater.inflate(R.menu.main_context_menu, menu);
-        MenuItem pointAndPicture =  menu.findItem(R.id.itemPointWithPicture);
-        MenuItem point =  menu.findItem(R.id.itemPoint);
-        MenuItem zone =  menu.findItem(R.id.itemZone);
+        MenuItem pointAndPicture = menu.findItem(R.id.itemPointWithPicture);
+        MenuItem point = menu.findItem(R.id.itemPoint);
+        MenuItem zone = menu.findItem(R.id.itemZone);
         pointAndPicture.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
@@ -258,47 +330,53 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         });
     }
 
-    public void onAddClick(View v){
+    public void onAddClick(View v) {
         registerForContextMenu(v);
         openContextMenu(v);
     }
 
     public void addPointWithoutPicture(MenuItem item) {
-        Toast.makeText(this, "Adding point...", Toast.LENGTH_SHORT).show();
+        point = new InterestPoint();
+        showAddPointDialog();
     }
 
     public void addZone(MenuItem item) {
+        addZoneMode = true;
         Toast.makeText(this, "Adding zone...", Toast.LENGTH_SHORT).show();
     }
 
     public void addPointWithPicture(MenuItem item) {
-        if(gps.canGetLocation()){
-            double latitude = gps.getLatitude();
-            double longitude = gps.getLongitude();
-            position = new GeoPosition(latitude, longitude);
-        }else{
-            gps.showSettingsAlert();
-        }
         takePhoto();
     }
 
-      ///////////
-     // PHOTO //
+    public GeoPosition getCurrentPosition() {
+        GeoPosition position = null;
+        if (gps.canGetLocation()) {
+            double latitude = gps.getLatitude();
+            double longitude = gps.getLongitude();
+            position = new GeoPosition(latitude, longitude);
+        } else {
+            gps.showSettingsAlert();
+        }
+        return position;
+    }
+
+    ///////////
+    // PHOTO //
     ///////////
 
     private void takePhoto() {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
         String date = new Date().toString();
-        String filename = "Photo_"+".jpg";
+        String filename = "Photo_" + ".jpg";
 
         //File photo = new File(getCacheDir(), filename);
         File photo;
         if (android.os.Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)) {
             photo = new File(Environment.getExternalStorageDirectory(), filename);
             Log.d("takePhoto", "Accessed to external storage");
-        }
-        else {
+        } else {
             Log.d("takePhoto", "Cannot access external storage");
             photo = new File(getCacheDir(), filename);
         }
@@ -310,8 +388,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         this.fileURI = Uri.fromFile(photo);
         startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
     }
-
-
 
 
     @Override
@@ -345,14 +421,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             e.printStackTrace();
                         }
                 }
+                Toast.makeText(context, "Uploading image...", Toast.LENGTH_LONG).show();
                 service.upload(fileURI.getPath().toString(), new Callback<ImageResponse>() {
                     @Override
                     public void success(ImageResponse imageResponse, Response response) {
-                        addPoint(imageResponse.data.link, position);
+                        point = new InterestPoint();
+                        GeoPosition position = getCurrentPosition();
+                        point.setPosition(position);
+                        Picture pic = new Picture(null, imageResponse.data.link, null);
+                        point.setPicture(pic);
+                        showAddPointDialog();
                     }
+
                     @Override
                     public void failure(RetrofitError error) {
-                        System.out.println("error: " + error);
+                        Toast.makeText(context, "Uploading failed, check your connection", Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -360,30 +443,37 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-
-    private void addPoint(String imageUrl, GeoPosition position){
-        List<HashTag> tags = new ArrayList<>();
-        tags.add(new HashTag("paul sabatier"));
-        Picture pic = new Picture(null, imageUrl, tags);
-        InterestPoint point = new InterestPoint("", pic, position, "");
+    private void addPoint() {
         interestPointService.save(point);
+        point = null;
     }
 
     /**
-     *  Adds Point markers on the map.
+     * Adds Point markers on the map.
      */
-    public void addMarkers(Collection<InterestPoint> pointsOfInterest){
+    public void addMarkers(Collection<InterestPoint> pointsOfInterest) {
         /** Make sure that the map has been initialised **/
-        if( pointsOfInterest != null && isMapReady && (map != null)){
-                for (InterestPoint point : interestPointService.getPointsOfInterest()) {
-                    LatLng position = new LatLng(point.getPosition().getLatitude(), point.getPosition().getLongtitude());
-                    map.addMarker(new MarkerOptions()
-                                    .position(position)
-                                    .title(point.getName())
-                                    .snippet(point.getDescription()));
-
+        BufferedInputStream isr = null;
+        if (pointsOfInterest != null && isMapReady && (map != null)) {
+            for (InterestPoint point : interestPointService.getPointsOfInterest()) {
+                LatLng position = new LatLng(point.getPosition().getLatitude(), point.getPosition().getLongtitude());
+                Bitmap btm = null;
+                    /*if(point.getPicture().getUrl() != null) {
+                        ImageDownloadCallBack callback = new ImageDownloadCallBack();
+                        service.download(point.getPicture().getUrl(), callback);
+                        btm = callback.getBitmap();
+                    }*/
+                MarkerOptions marker = new MarkerOptions()
+                        .position(position)
+                        .title(point.getName())
+                        .snippet(point.getDescription());
+                if (btm != null) {
+                    marker.icon(BitmapDescriptorFactory.fromBitmap(btm));
+                    btm.recycle();
                 }
+                map.addMarker(marker);
             }
+        }
     }
 
     @Override
@@ -402,7 +492,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void doMySearch(String query) {
         ArrayList<InterestPoint> searchResultsFromDB = new ArrayList<>(interestPointService.getPointsOfInterest(query));
         pointsOfInterest = searchResultsFromDB;
-        if(searchResultsFromDB.size() > 0 && isMapReady ) {
+        if (searchResultsFromDB.size() > 0 && isMapReady) {
             //Clear all markers
             map.clear();
             addMarkers(interestPointService.getPointsOfInterest(query));
