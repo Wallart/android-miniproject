@@ -1,5 +1,6 @@
 package students.molecular.campusinterests;
 
+import android.app.Dialog;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
@@ -24,6 +25,12 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.client.Firebase;
@@ -72,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private float defaultZoom;
     private LatLng defaultLocation;
     private LatLng southwest;
-    private boolean isMapReady = false;
+    private boolean isMapReady = false, addPointMode = false;
     private ArrayList<InterestPoint> pointsOfInterest;
     private LatLng northeast;
     private Bitmap bitmap;
@@ -80,6 +87,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ImgurService service;
              IInterestPoint interestPointService;
     GoogleApiClient mGoogleApiClient;
+             private Dialog addPointDialog;
+             private Button btnAjouter, btnAnnuler;
+             private TextView pointName, pointDescription;
+             private CheckBox checkBoxAddCurrentLoc;
+
 
 
     private Uri fileURI;
@@ -195,16 +207,74 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 checkMapBounds();
             }
         });
-        map.setOnMapClickListener(new GoogleMap.OnMapClickListener()
-        {
+        map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
-            public void onMapClick(LatLng arg0)
-            {
+            public void onMapClick(LatLng arg0) {
                 addPoint(null, new GeoPosition(arg0.latitude, arg0.longitude));
             }
         });
         isMapReady = true;
         addMarkers(pointsOfInterest); //add markers
+
+        //Set OnLongClickListener on the map for adding a point of interest
+        map.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(final LatLng latLng) {
+                if(addPointMode){
+                addPointDialog = new Dialog(MainActivity.this, android.R.style.Theme_DeviceDefault_Light_Dialog_MinWidth);
+                addPointDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                addPointDialog.setCancelable(true);
+                addPointDialog.setContentView(R.layout.add_point);
+                pointName = (EditText) addPointDialog.findViewById(R.id.pointName);
+                pointDescription = (EditText) addPointDialog.findViewById(R.id.pointDescription);
+                checkBoxAddCurrentLoc = (CheckBox) addPointDialog.findViewById(R.id.checkBoxAddCurrentLoc);
+                btnAjouter = (Button) addPointDialog.findViewById(R.id.btnAjout);
+                btnAjouter.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        String name = pointName.getText().toString().trim();
+                        String description = pointDescription.getText().toString().trim();
+                        if (name.isEmpty()) {
+                            pointName.setError("Champs requis");
+                            pointDescription.setError("Nom de point requis");
+                            return;
+                        }
+                        if (checkBoxAddCurrentLoc.isChecked())
+                            ; //latLng = getMyCurrentLocation(); //get my location from GPS
+
+
+                        InterestPoint pointToAdd = new InterestPoint();
+                        pointToAdd.setName(name);
+                        if(description != null && !description.isEmpty())
+                        pointToAdd.setDescription(description);
+                        if(latLng != null)
+                        pointToAdd.setPosition(new GeoPosition(latLng.latitude,latLng.longitude));
+                        //pointToAdd.setPicture(new Picture()); To do add pic to the instance
+                        if (interestPointService.save(pointToAdd)) {
+
+                            Toast.makeText(getApplicationContext(),
+                                    "Point:" + name + "\nAjout reussi!! ",
+                                    Toast.LENGTH_LONG).show();
+                            pointsOfInterest.add(pointToAdd);
+                        } else {
+                            Toast.makeText(getApplicationContext(), "FAILED", Toast.LENGTH_LONG).show();
+                        }
+                        addPointMode = false;
+                        addPointDialog.dismiss();
+                    }
+                });
+                btnAnnuler = (Button) addPointDialog.findViewById(R.id.btnAnnule);
+                btnAnnuler.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                        addPointMode = false;
+                        addPointDialog.dismiss();
+                    }
+                });
+            } // end if
+                addPointDialog.show();
+            }
+
+        });
     }
 
     private void checkMapBounds() {
@@ -264,7 +334,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void addPointWithoutPicture(MenuItem item) {
+        addPointMode  = true;
         Toast.makeText(this, "Adding point...", Toast.LENGTH_SHORT).show();
+
     }
 
     public void addZone(MenuItem item) {
@@ -272,6 +344,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void addPointWithPicture(MenuItem item) {
+        addPointMode = true;
         if(gps.canGetLocation()){
             double latitude = gps.getLatitude();
             double longitude = gps.getLongitude();

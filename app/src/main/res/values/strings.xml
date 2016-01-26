@@ -12,4 +12,5 @@
     <string name="ctx_elt_point_and_picture">Point with picture</string>
     <string name="ctx_elt_zone">Zone</string>
     <string name="search_title">Rechercher....</string>
+    <string name="currentPosition">Je suis sur place</string>
 </resources>
