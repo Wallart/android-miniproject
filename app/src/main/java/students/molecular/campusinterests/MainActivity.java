@@ -65,6 +65,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import okhttp3.Call;
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
@@ -241,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         System.out.println(point.getName());
         System.out.println(point.getPicture().getUrl());
         if (point != null && point.getPicture() != null && point.getPicture().getUrl() != null) {
-            Dialog builder = new Dialog(this);
+            Dialog builder = new Dialog(MainActivity.this);
             builder.requestWindowFeature(Window.FEATURE_NO_TITLE);
             builder.getWindow().setBackgroundDrawable(
                     new ColorDrawable(android.graphics.Color.TRANSPARENT));
@@ -251,13 +252,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     //nothing;
                 }
             });
-
-            ImageView imageView = new ImageView(this);
-            imageView.setImageURI(Uri.parse(point.getPicture().getUrl()));
+            final ImageView imageView = new ImageView(context);
             builder.addContentView(imageView, new RelativeLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
             builder.show();
+            service.download(point.getPicture().getUrl(), new okhttp3.Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    Toast.makeText(context, "Error occured when downloading the image", Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                public void onResponse(Call call, okhttp3.Response response) throws IOException {
+                    BufferedInputStream bis = new BufferedInputStream(response.body().byteStream());
+                    final Bitmap bm = BitmapFactory.decodeStream(bis);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            imageView.setImageBitmap(bm);
+                        }
+                    });
+                }
+            });
         } else {
             Toast.makeText(this, "Aucune image n'est associée à ce point", Toast.LENGTH_LONG).show();
         }
