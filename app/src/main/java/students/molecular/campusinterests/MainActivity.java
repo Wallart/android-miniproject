@@ -381,9 +381,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                  if(aZoneToAdd != null) {
                      aZoneToAdd.remove();
-                     aZoneToAdd.setStrokeColor(Color.RED);
                  }
-                 aZoneToAdd = map.addPolygon(rectOptions);
+                 aZoneToAdd = map.addPolygon(rectOptions.strokeColor(Color.RED).strokeWidth(2));
              }
 
 
