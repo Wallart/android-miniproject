@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -46,6 +47,8 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polygon;
+import com.google.android.gms.maps.model.PolygonOptions;
 
 import java.io.File;
 import java.net.URLConnection;
@@ -94,6 +97,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
              private Button btnAjouter, btnAnnuler;
              private TextView pointName, pointDescription;
              private CheckBox checkBoxAddCurrentLoc;
+             private List<GeoPosition> zoneBoundary;
+             private boolean wantsAnotherPoint = true;
+             private EditText zoneName;
+             private Polygon aZoneToAdd;
 
 
 
@@ -279,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     zoneBoundary = new ArrayList<GeoPosition>();
 
                     zoneBoundary.add(new GeoPosition(latLng.latitude,latLng.longitude));
-
+                    drawZone(zoneBoundary);
                      confirmNbPoints();
 
                 }
@@ -367,10 +374,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
 
              }
+             private void drawZone(List<GeoPosition> boundary) {
+                 PolygonOptions rectOptions = new PolygonOptions();
+                 for(GeoPosition geo : boundary)
+                    rectOptions.add(new LatLng(geo.getLatitude(),geo.getLongtitude()));
 
-             private List<GeoPosition> zoneBoundary;
-             private boolean wantsAnotherPoint = true;
-             private EditText zoneName;
+                 if(aZoneToAdd != null) {
+                     aZoneToAdd.remove();
+                     aZoneToAdd.setStrokeColor(Color.RED);
+                 }
+                 aZoneToAdd = map.addPolygon(rectOptions);
+             }
+
+
     private void checkMapBounds() {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         builder.include(northeast);
