@@ -2,18 +2,16 @@ package students.molecular.campusinterests.services;
 
 import android.util.Log;
 
-import com.firebase.client.ChildEventListener;
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.firebase.client.ValueEventListener;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
+import students.molecular.campusinterests.model.GeoPosition;
 import students.molecular.campusinterests.model.HashTag;
 import students.molecular.campusinterests.model.InterestPoint;
 
@@ -31,11 +29,11 @@ public class InterestPointImpl implements IInterestPoint {
         fb.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot child: dataSnapshot.getChildren())
-                    for(DataSnapshot subChild : child.getChildren()){
+                for (DataSnapshot child : dataSnapshot.getChildren())
+                    for (DataSnapshot subChild : child.getChildren()) {
                         InterestPoint point = subChild.getValue(InterestPoint.class);
                         points.add(point);
-                }
+                    }
                 InterestPointImpl.this.listener.onDataChange();
             }
 
@@ -47,21 +45,21 @@ public class InterestPointImpl implements IInterestPoint {
     }
 
     public Collection<InterestPoint> getPointsOfInterest(String query) {
+        if (query == null || query.isEmpty())
+            return points;
         Collection<InterestPoint> poi = new ArrayList<>();
-        Log.d("getPointsOfInterest", query);
-        Log.d("getPointsOfInterest", points.toString());
         for (InterestPoint point : points) {
             if (point.getName() != null && point.getName().toLowerCase().contains(query.toLowerCase())) {
                 poi.add(point);
             } else {
-                for (HashTag tag : point.getPicture().getTags()) {
-                    Log.d("getPointsOfInterest", tag.getName());
-                    if (tag.getName().toLowerCase().contains(query.toLowerCase()))
-                        poi.add(point);
-                }
+                if (point.getPicture() != null && point.getPicture().getTags() != null)
+                    for (HashTag tag : point.getPicture().getTags()) {
+                        Log.d("getPointsOfInterest", tag.getName());
+                        if (tag.getName().toLowerCase().contains(query.toLowerCase()))
+                            poi.add(point);
+                    }
             }
         }
-        System.out.println(poi);
         return poi;
     }
 
@@ -73,5 +71,17 @@ public class InterestPointImpl implements IInterestPoint {
     public boolean save(InterestPoint point) {
         fb.child("points").push().setValue(point);
         return true;
+    }
+
+    @Override
+    public InterestPoint getPointsOfInterestByPosition(LatLng position) {
+        for (InterestPoint point : points) {
+            if (point.getPosition() != null) {
+                GeoPosition pointPosition = point.getPosition();
+                if (pointPosition.getLatitude() == position.latitude && pointPosition.getLongtitude() == position.longitude)
+                    return point;
+            }
+        }
+        return null;
     }
 }

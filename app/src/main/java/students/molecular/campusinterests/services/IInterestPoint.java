@@ -1,5 +1,7 @@
 package students.molecular.campusinterests.services;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -16,6 +18,8 @@ public interface IInterestPoint {
     Collection<InterestPoint> getPointsOfInterest();
 
     boolean save(InterestPoint point);
+
+    InterestPoint getPointsOfInterestByPosition(LatLng position);
 
     interface DataChangedListener {
         void onDataChange();

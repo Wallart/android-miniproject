@@ -3,10 +3,12 @@ package students.molecular.campusinterests;
 import android.app.Dialog;
 import android.app.SearchManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -26,10 +28,13 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,6 +49,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
@@ -199,6 +205,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onMapReady(final GoogleMap googleMap) {
         this.map = googleMap;
+        isMapReady = true;
         this.map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
         this.map.addMarker(new MarkerOptions().position(this.defaultLocation).title(getString(R.string.college_name)));
         this.map.moveCamera(CameraUpdateFactory.newLatLngZoom(this.defaultLocation, this.defaultZoom));
@@ -219,8 +226,41 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }
             }
         });
-        isMapReady = true;
+        map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                showImage(marker);
+                return true;
+            }
+        });
         addMarkers(pointsOfInterest);
+    }
+
+    private void showImage(Marker marker) {
+        point = interestPointService.getPointsOfInterestByPosition(marker.getPosition());
+        System.out.println(point.getName());
+        System.out.println(point.getPicture().getUrl());
+        if (point != null && point.getPicture() != null && point.getPicture().getUrl() != null) {
+            Dialog builder = new Dialog(this);
+            builder.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            builder.getWindow().setBackgroundDrawable(
+                    new ColorDrawable(android.graphics.Color.TRANSPARENT));
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialogInterface) {
+                    //nothing;
+                }
+            });
+
+            ImageView imageView = new ImageView(this);
+            imageView.setImageURI(Uri.parse(point.getPicture().getUrl()));
+            builder.addContentView(imageView, new RelativeLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+            builder.show();
+        } else {
+            Toast.makeText(this, "Aucune image n'est associée à ce point", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showAddPointDialog() {
@@ -455,7 +495,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         /** Make sure that the map has been initialised **/
         BufferedInputStream isr = null;
         if (pointsOfInterest != null && isMapReady && (map != null)) {
-            for (InterestPoint point : interestPointService.getPointsOfInterest()) {
+            for (InterestPoint point : pointsOfInterest) {
                 LatLng position = new LatLng(point.getPosition().getLatitude(), point.getPosition().getLongtitude());
                 Bitmap btm = null;
                     /*if(point.getPicture().getUrl() != null) {
@@ -495,8 +535,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (searchResultsFromDB.size() > 0 && isMapReady) {
             //Clear all markers
             map.clear();
-            addMarkers(interestPointService.getPointsOfInterest(query));
-
+            addMarkers(searchResultsFromDB);
         } else {
             Toast.makeText(this, "No results for your search " + isMapReady, Toast.LENGTH_LONG).show();
         }
