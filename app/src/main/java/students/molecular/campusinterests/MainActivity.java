@@ -1,8 +1,10 @@
 package students.molecular.campusinterests;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.SearchManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -66,6 +68,7 @@ import students.molecular.campusinterests.model.HashTag;
 import students.molecular.campusinterests.model.ImageResponse;
 import students.molecular.campusinterests.model.InterestPoint;
 import students.molecular.campusinterests.model.Picture;
+import students.molecular.campusinterests.model.Zone;
 import students.molecular.campusinterests.services.IInterestPoint;
 import students.molecular.campusinterests.services.ImgurService;
 import students.molecular.campusinterests.services.InterestPointImpl;
@@ -79,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private float defaultZoom;
     private LatLng defaultLocation;
     private LatLng southwest;
-    private boolean isMapReady = false, addPointMode = false;
+    private boolean isMapReady = false, addPointMode = false, addZoneMode = false;
     private ArrayList<InterestPoint> pointsOfInterest;
     private LatLng northeast;
     private Bitmap bitmap;
@@ -87,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ImgurService service;
              IInterestPoint interestPointService;
     GoogleApiClient mGoogleApiClient;
-             private Dialog addPointDialog;
+             private Dialog addPointDialog, addZoneDialog;
              private Button btnAjouter, btnAnnuler;
              private TextView pointName, pointDescription;
              private CheckBox checkBoxAddCurrentLoc;
@@ -255,7 +258,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                             Toast.makeText(getApplicationContext(),
                                     "Point:" + name + "\nAjout reussi!! ",
                                     Toast.LENGTH_LONG).show();
-                            pointsOfInterest.add(pointToAdd);
+                            pointsOfInterest.add(pointToAdd); //add a point just added to the points to show on map
                         } else {
                             Toast.makeText(getApplicationContext(), "FAILED", Toast.LENGTH_LONG).show();
                         }
@@ -271,8 +274,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 });
                     addPointDialog.show();
-            } else {
-                    addPointMode = false;
+            } else if (addZoneMode) {
+                    if(zoneBoundary == null || zoneBoundary.size() == 0)
+                    zoneBoundary = new ArrayList<GeoPosition>();
+
+                    zoneBoundary.add(new GeoPosition(latLng.latitude,latLng.longitude));
+
+                     confirmNbPoints();
+
                 }
 
             }
@@ -280,6 +289,88 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         });
     }
 
+             /**
+              *  User confirms if they have more points forming the boundary of a zone
+              */
+             private void confirmNbPoints() {
+
+                 DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                     @Override
+                     public void onClick(DialogInterface dialog, int which) {
+                         switch (which){
+                             case DialogInterface.BUTTON_POSITIVE:
+                                 wantsAnotherPoint = true;
+                                 break;
+
+                             case DialogInterface.BUTTON_NEGATIVE:
+                                 wantsAnotherPoint = false;
+
+                                 // Show confirmation dialog if they have no more points to add for the zone boundary
+                                 if(!wantsAnotherPoint) {
+                                     addZoneDialog = new Dialog(MainActivity.this, android.R.style.Theme_DeviceDefault_Light_Dialog_MinWidth);
+                                     addZoneDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                                     addZoneDialog.setCancelable(true);
+                                     addZoneDialog.setContentView(R.layout.add_zone);
+                                     zoneName = (EditText) addZoneDialog.findViewById(R.id.zoneName);
+                                     btnAjouter = (Button) addZoneDialog.findViewById(R.id.btnAjout);
+                                     btnAjouter.setOnClickListener(new View.OnClickListener() {
+                                         @Override
+                                         public void onClick(View v) {
+                                             String name = zoneName.getText().toString().trim();
+                                             if (name.isEmpty()) {
+                                                 zoneName.setError("Champs requis");
+                                                 return;
+                                             }
+
+                                             Zone zoneToAdd;
+                                             if (zoneBoundary != null && zoneBoundary.size() > 0) {
+                                                 zoneToAdd = new Zone(name, zoneBoundary);
+                                                 //pointToAdd.setPicture(new Picture()); To do add pic to the instance
+
+                                                 //Waiting for the zone save function
+                                                  /*  if (ZoneService.save(zoneToAdd)) {
+
+                                                        Toast.makeText(getApplicationContext(),
+                                                                "Zone: " + name + "\nAjout reussi!! ",
+                                                                Toast.LENGTH_LONG).show();
+                                                        zones.add(zoneToAdd); //add a point just added to the zones to show on map
+                                                    } else {
+                                                        Toast.makeText(getApplicationContext(), "FAILED", Toast.LENGTH_LONG).show();
+                                                    }*/
+                                                 addZoneMode = false;
+                                                 wantsAnotherPoint = true;
+                                                 addZoneDialog.dismiss();
+                                             }
+                                         }
+                                     });
+                                     btnAnnuler = (Button) addZoneDialog.findViewById(R.id.btnAnnule);
+                                     btnAnnuler.setOnClickListener(new View.OnClickListener() {
+                                         public void onClick(View v) {
+                                             addZoneMode = false;
+                                             wantsAnotherPoint = true;
+                                             addZoneDialog.dismiss();
+                                         }
+                                     });
+                                     addZoneDialog.show();
+                                 }
+
+                                 break;
+                         }
+                     }
+                 };
+
+                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                 builder.setMessage(zoneBoundary.size()+" points pris en compte" +
+                         "\nVous avez un autre point à ajouter?").setPositiveButton("OUI", dialogClickListener)
+                         .setNegativeButton("NON", dialogClickListener).show();
+
+
+
+             }
+
+             private List<GeoPosition> zoneBoundary;
+             private boolean wantsAnotherPoint = true;
+             private EditText zoneName;
     private void checkMapBounds() {
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         builder.include(northeast);
@@ -332,6 +423,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void onAddClick(View v){
+        addZoneMode = false;
+        addPointMode = false;
+        wantsAnotherPoint = true;
+        zoneBoundary = null;
         registerForContextMenu(v);
         openContextMenu(v);
     }
@@ -343,6 +438,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     public void addZone(MenuItem item) {
+        addZoneMode = true;
         Toast.makeText(this, "Adding zone...", Toast.LENGTH_SHORT).show();
     }
 
