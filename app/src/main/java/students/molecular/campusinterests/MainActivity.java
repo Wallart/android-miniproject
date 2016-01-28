@@ -333,9 +333,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View v) {
                 String name = pointName.getText().toString().trim();
                 String description = pointDescription.getText().toString().trim();
-                ArrayList<String> tagList = new ArrayList<String>();
-                String tagsStr = tags.getText().toString();
-                tagList = (ArrayList<String>)Arrays.asList(tagsStr.split(","));
+
+                String tagsStr = tags.getText().toString().trim();
+                String[] tagList;
+                if(!tagsStr.isEmpty())
+                    tagList  = tagsStr.split(",");
                 if (name.isEmpty()) {
                     pointName.setError("Champs requis");
                     pointDescription.setError("Nom de point requis");
