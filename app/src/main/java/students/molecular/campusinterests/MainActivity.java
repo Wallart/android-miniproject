@@ -350,6 +350,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 } else {
                     zone.setName(name);
+                    zone.setDescription(description);
                     Toast.makeText(context, "Sélectionner la zone sur la map", Toast.LENGTH_SHORT).show();
                 }
 
