@@ -19,6 +19,7 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
@@ -66,6 +67,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import okhttp3.Call;
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
@@ -73,6 +75,7 @@ import students.molecular.campusinterests.model.GeoPosition;
 import students.molecular.campusinterests.model.ImageResponse;
 import students.molecular.campusinterests.model.InterestPoint;
 import students.molecular.campusinterests.model.Picture;
+import students.molecular.campusinterests.model.Zone;
 import students.molecular.campusinterests.services.IInterestPoint;
 import students.molecular.campusinterests.services.ImgurService;
 import students.molecular.campusinterests.services.InterestPointImpl;
@@ -102,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private boolean wantsAnotherPoint = true;
     private EditText zoneName;
     private Polygon aZoneToAdd;
+    private Zone zone;
 
 
     private Uri fileURI;
@@ -219,11 +223,20 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng arg0) {
-                if (point != null) {
-                    point.setPosition(new GeoPosition(arg0.latitude, arg0.longitude));
-                    addPoint();
+                if (!addZoneMode) {
+                    if (point != null) {
+                        point.setPosition(new GeoPosition(arg0.latitude, arg0.longitude));
+                        addPoint();
+                    } else {
+                        Toast.makeText(context, "Utiliser le button pour rajouter un point", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
-                    Toast.makeText(context, "Utiliser le button pour rajouter un point", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Le point a été bien rajouté", Toast.LENGTH_SHORT).show();
+                    zone.getPositions().add(new GeoPosition(arg0.latitude, arg0.longitude));
+                    if (zone.getPositions().size() > 2) {
+                        confirmNbPoints();
+                    }
+                    drawZone(zone.getPositions());
                 }
             }
         });
@@ -237,12 +250,33 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         addMarkers(pointsOfInterest);
     }
 
+
+    private void confirmNbPoints() {
+
+        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DialogInterface.BUTTON_POSITIVE:
+                        break;
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        interestPointService.save(zone);
+                        zone = null;
+                        break;
+                }
+            }
+        };
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setMessage(zone.getPositions().size() + " points pris en compte" +
+                "\nVous avez un autre point à ajouter?").setPositiveButton("OUI", dialogClickListener)
+                .setNegativeButton("NON", dialogClickListener).show();
+    }
+
+
     private void showImage(Marker marker) {
         point = interestPointService.getPointsOfInterestByPosition(marker.getPosition());
-        System.out.println(point.getName());
-        System.out.println(point.getPicture().getUrl());
         if (point != null && point.getPicture() != null && point.getPicture().getUrl() != null) {
-            Dialog builder = new Dialog(this);
+            Dialog builder = new Dialog(MainActivity.this);
             builder.requestWindowFeature(Window.FEATURE_NO_TITLE);
             builder.getWindow().setBackgroundDrawable(
                     new ColorDrawable(android.graphics.Color.TRANSPARENT));
@@ -252,13 +286,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     //nothing;
                 }
             });
-
-            ImageView imageView = new ImageView(this);
-            imageView.setImageURI(Uri.parse(point.getPicture().getUrl()));
+            final ImageView imageView = new ImageView(context);
             builder.addContentView(imageView, new RelativeLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
             builder.show();
+            service.download(point.getPicture().getUrl(), new okhttp3.Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    Toast.makeText(context, "Error occured when downloading the image", Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                public void onResponse(Call call, okhttp3.Response response) throws IOException {
+                    BufferedInputStream bis = new BufferedInputStream(response.body().byteStream());
+                    final Bitmap bm = BitmapFactory.decodeStream(bis);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            imageView.setImageBitmap(bm);
+                        }
+                    });
+                }
+            });
         } else {
             Toast.makeText(this, "Aucune image n'est associée à ce point", Toast.LENGTH_LONG).show();
         }
@@ -273,6 +323,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         pointDescription = (EditText) addPointDialog.findViewById(R.id.pointDescription);
         checkBoxAddCurrentLoc = (CheckBox) addPointDialog.findViewById(R.id.checkBoxAddCurrentLoc);
         checkBoxAddCurrentLoc.setEnabled(true);
+        if (addZoneMode || position != null) {
+            checkBoxAddCurrentLoc.setVisibility(View.INVISIBLE);
+        }
         btnAjouter = (Button) addPointDialog.findViewById(R.id.btnAjout);
         tags = (TextView)addPointDialog.findViewById(R.id.tags);
         btnAjouter.setOnClickListener(new View.OnClickListener() {
@@ -288,24 +341,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     pointDescription.setError("Nom de point requis");
                     return;
                 }
-                point.setName(name);
-                if (checkBoxAddCurrentLoc.isChecked()) {
-                    point.setPosition(getCurrentPosition());
-                }
-                if (description != null && !description.isEmpty())
-                    point.setDescription(description);
-                if (point.getPosition() == null) {
-                    Toast.makeText(context, "Sélectionner la position du point sur la map", Toast.LENGTH_SHORT).show();
+                if (!addZoneMode) {
+                    point.setName(name);
+                    if (checkBoxAddCurrentLoc.isChecked()) {
+                        point.setPosition(getCurrentPosition());
+                    }
+                    if (description != null && !description.isEmpty())
+                        point.setDescription(description);
+                    if (point.getPosition() == null) {
+                        Toast.makeText(context, "Sélectionner la position du point sur la map", Toast.LENGTH_SHORT).show();
+                    } else {
+                        interestPointService.save(point);
+                    }
                 } else {
-                    interestPointService.save(point);
+                    zone.setName(name);
+                    Toast.makeText(context, "Sélectionner la zone sur la map", Toast.LENGTH_SHORT).show();
                 }
+
                 addPointDialog.dismiss();
             }
         });
         btnAnnuler = (Button) addPointDialog.findViewById(R.id.btnAnnule);
         btnAnnuler.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                addPointMode = false;
+                point = null;
                 addPointDialog.dismiss();
             }
         });
@@ -387,7 +446,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void addZone(MenuItem item) {
         addZoneMode = true;
-        Toast.makeText(this, "Adding zone...", Toast.LENGTH_SHORT).show();
+        zone = new Zone();
+        showAddPointDialog();
     }
 
     public void addPointWithPicture(MenuItem item) {
@@ -497,26 +557,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Adds Point markers on the map.
      */
     public void addMarkers(Collection<InterestPoint> pointsOfInterest) {
-        /** Make sure that the map has been initialised **/
-        BufferedInputStream isr = null;
         if (pointsOfInterest != null && isMapReady && (map != null)) {
             for (InterestPoint point : pointsOfInterest) {
                 LatLng position = new LatLng(point.getPosition().getLatitude(), point.getPosition().getLongtitude());
-                Bitmap btm = null;
-                    /*if(point.getPicture().getUrl() != null) {
-                        ImageDownloadCallBack callback = new ImageDownloadCallBack();
-                        service.download(point.getPicture().getUrl(), callback);
-                        btm = callback.getBitmap();
-                    }*/
                 MarkerOptions marker = new MarkerOptions()
                         .position(position)
                         .title(point.getName())
                         .snippet(point.getDescription());
-                if (btm != null) {
-                    marker.icon(BitmapDescriptorFactory.fromBitmap(btm));
-                    btm.recycle();
-                }
                 map.addMarker(marker);
+            }
+        }
+    }
+
+    public void addZonesMarkers(Collection<Zone> zones) {
+        if (zones != null && isMapReady && (map != null)) {
+            for (Zone zone : zones) {
+                drawZone(zone.getPositions());
             }
         }
     }
@@ -549,5 +605,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onDataChange() {
         addMarkers(interestPointService.getPointsOfInterest());
+        addZonesMarkers(interestPointService.getZones());
     }
 }

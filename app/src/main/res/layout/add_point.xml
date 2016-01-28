@@ -14,7 +14,7 @@
         android:layout_marginRight="4dp"
         android:layout_marginBottom="4dp"
         android:layout_marginTop="10dp"
-        android:hint="Nom de point d\'intérêt" />
+        android:hint="Nom de point d\'intérêt ou de la zone" />
     <EditText
         android:id="@+id/pointDescription"
         android:layout_width="match_parent"
@@ -22,7 +22,7 @@
         android:layout_below="@+id/pointName"
         android:layout_marginTop="4dp"
         android:fontFamily="sans-serif"
-        android:hint="Description de point d\'intérêt" />
+        android:hint="Description de point d\'intérêt ou de la zone" />
 
     <EditText
         android:id="@+id/tags"
