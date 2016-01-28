@@ -338,6 +338,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 String[] tagList;
                 if(!tagsStr.isEmpty())
                     tagList  = tagsStr.split(",");
+
                 if (name.isEmpty()) {
                     pointName.setError("Champs requis");
                     pointDescription.setError("Nom de point requis");
