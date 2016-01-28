@@ -61,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -95,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     GoogleApiClient mGoogleApiClient;
     private Dialog addPointDialog, addZoneDialog;
     private Button btnAjouter, btnAnnuler;
-    private TextView pointName, pointDescription;
+    private TextView pointName, pointDescription, tags;
     private CheckBox checkBoxAddCurrentLoc;
     private List<GeoPosition> zoneBoundary;
     private boolean wantsAnotherPoint = true;
@@ -273,11 +274,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         checkBoxAddCurrentLoc = (CheckBox) addPointDialog.findViewById(R.id.checkBoxAddCurrentLoc);
         checkBoxAddCurrentLoc.setEnabled(true);
         btnAjouter = (Button) addPointDialog.findViewById(R.id.btnAjout);
+        tags = (TextView)addPointDialog.findViewById(R.id.tags);
         btnAjouter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String name = pointName.getText().toString().trim();
                 String description = pointDescription.getText().toString().trim();
+                ArrayList<String> tagList = new ArrayList<String>();
+                String tagsStr = tags.getText().toString();
+                tagList = (ArrayList<String>)Arrays.asList(tagsStr.split(","));
                 if (name.isEmpty()) {
                     pointName.setError("Champs requis");
                     pointDescription.setError("Nom de point requis");

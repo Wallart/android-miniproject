@@ -5,14 +5,7 @@
     android:layout_gravity="center"
     android:id="@+id/addZone">
 
-    <!--  <ImageView
-          android:id="@+id/pointImage"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:scaleType="fitStart"
-          android:layout_centerHorizontal="true"
-          android:layout_alignParentTop="true"
-          android:src="@drawable/user_colored"/> -->
+
 
     <EditText
         android:id="@+id/zoneName"
@@ -23,7 +16,15 @@
         android:layout_marginTop="10dp"
         android:hint="Nom de la zone à ajouter" />
 
-
+    <EditText
+        android:id="@+id/tags"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="10dp"
+        android:layout_marginBottom="10dp"
+        android:layout_marginTop="10dp"
+        android:layout_below="@+id/zoneName"
+        android:hint="Saisissez vos Tags séparés par une virgule" />
 
 
 
@@ -35,7 +36,7 @@
         android:layout_marginTop="30dp"
         android:layout_marginLeft="75dp"
         android:layout_marginRight="33dp"
-        android:layout_below="@+id/zoneName"
+        android:layout_below="@+id/tags"
         />
     <Button
         android:layout_width="wrap_content"
