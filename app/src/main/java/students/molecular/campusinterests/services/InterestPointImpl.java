@@ -87,6 +87,7 @@ public class InterestPointImpl implements IInterestPoint {
 
     @Override
     public Collection<Zone> getZones() {
+        System.out.println(zones);
         return zones;
     }
 

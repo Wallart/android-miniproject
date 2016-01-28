@@ -371,11 +371,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         PolygonOptions rectOptions = new PolygonOptions();
         for (GeoPosition geo : boundary)
             rectOptions.add(new LatLng(geo.getLatitude(), geo.getLongtitude()));
-
-        if (aZoneToAdd != null) {
-            aZoneToAdd.remove();
-        }
-        aZoneToAdd = map.addPolygon(rectOptions.strokeColor(Color.RED).strokeWidth(2));
+        map.addPolygon(rectOptions.strokeColor(Color.RED).strokeWidth(2));
     }
 
 
