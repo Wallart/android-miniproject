@@ -72,6 +72,7 @@ import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
 import students.molecular.campusinterests.model.GeoPosition;
+import students.molecular.campusinterests.model.HashTag;
 import students.molecular.campusinterests.model.ImageResponse;
 import students.molecular.campusinterests.model.InterestPoint;
 import students.molecular.campusinterests.model.Picture;
@@ -335,9 +336,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 String description = pointDescription.getText().toString().trim();
 
                 String tagsStr = tags.getText().toString().trim();
-                String[] tagList;
-                if(!tagsStr.isEmpty())
-                    tagList  = tagsStr.split(",");
+                 ArrayList<HashTag> listHashtag = new ArrayList<HashTag>();
+                if(!tagsStr.isEmpty()) {
+                    String[]    tagList  = tagsStr.split(",");
+                    for(String str : tagList)
+                        listHashtag.add(new HashTag(str));
+                }
+
 
                 if (name.isEmpty()) {
                     pointName.setError("Champs requis");
@@ -359,6 +364,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 } else {
                     zone.setName(name);
                     zone.setDescription(description);
+                    zone.setTags(listHashtag);
                     Toast.makeText(context, "Sélectionner la zone sur la map", Toast.LENGTH_SHORT).show();
                 }
 
